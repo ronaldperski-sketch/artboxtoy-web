@@ -3,6 +3,7 @@
     "public": ".",
     "ignore": ["firebase.json", ".firebaserc"],
     "rewrites": [
+      { "source": "/tag/**",  "destination": "/index.html" },
       { "source": "/zbox/**", "destination": "/index.html" },
       { "source": "/ar/**",   "destination": "/index.html" },
       { "source": "/scan/**", "destination": "/index.html" }
