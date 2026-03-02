@@ -1,0 +1,19 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": ["firebase.json", ".firebaserc"],
+    "rewrites": [
+      { "source": "/zbox/**", "destination": "/index.html" },
+      { "source": "/ar/**",   "destination": "/index.html" },
+      { "source": "/scan/**", "destination": "/index.html" }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      }
+    ]
+  }
+}

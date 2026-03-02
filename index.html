@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="theme-color" content="#000000"/>
+  <title>xTreasure</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --accent: #00E5CC;
+      --sub:    #00FF88;
+      --warn:   #FFB800;
+      --red:    #FF3355;
+      --bg:     #000000;
+      --font:   'Courier New', Courier, monospace;
+    }
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      font-family: var(--font);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      color: var(--accent);
+    }
+
+    /* Main canvas — full bleed */
+    #c {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+
+    /* All overlay text layers */
+    #overlay {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    /* ── SCENE TEXT ── */
+    .scene-text {
+      position: absolute;
+      width: 100%;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      letter-spacing: 0.18em;
+    }
+    .scene-text.show { opacity: 1; }
+
+    #txt-boot {
+      top: 38%;
+      font-size: clamp(11px, 3vw, 14px);
+      color: var(--sub);
+    }
+    #txt-classified {
+      top: 18%;
+      font-size: clamp(10px, 2.6vw, 12px);
+      color: var(--accent);
+      opacity: 0;
+    }
+    #txt-scanning {
+      top: 22%;
+      font-size: clamp(10px, 2.6vw, 12px);
+      color: var(--accent);
+      opacity: 0;
+      animation: blinkText 0.8s ease-in-out infinite;
+    }
+    @keyframes blinkText { 0%,100%{opacity:0.3} 50%{opacity:1} }
+
+    #txt-locked {
+      top: 28%;
+      font-size: clamp(13px, 4vw, 18px);
+      font-weight: bold;
+      color: var(--sub);
+      opacity: 0;
+      text-shadow: 0 0 20px rgba(0,255,136,0.6);
+    }
+    #txt-logo {
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: clamp(28px, 9vw, 52px);
+      font-weight: bold;
+      letter-spacing: 0.16em;
+      color: var(--accent);
+      text-shadow: 0 0 40px rgba(0,229,204,0.7), 0 0 80px rgba(0,229,204,0.3);
+      opacity: 0;
+    }
+    #txt-tagline {
+      top: calc(50% + clamp(28px,9vw,52px) * 1.1);
+      font-size: clamp(9px, 2.4vw, 12px);
+      letter-spacing: 0.24em;
+      color: var(--accent);
+      opacity: 0;
+    }
+
+    /* ── GLITCH effect on logo ── */
+    #txt-logo.glitch {
+      animation: glitch 0.12s steps(1) infinite;
+    }
+    @keyframes glitch {
+      0%   { clip-path: inset(20% 0 60% 0); transform: translateY(-50%) translateX(-3px); color: var(--red); }
+      25%  { clip-path: inset(60% 0 10% 0); transform: translateY(-50%) translateX( 3px); color: var(--sub); }
+      50%  { clip-path: inset(40% 0 40% 0); transform: translateY(-50%) translateX(-2px); color: var(--accent); }
+      75%  { clip-path: inset(10% 0 80% 0); transform: translateY(-50%) translateX( 2px); color: var(--warn); }
+      100% { clip-path: inset(0% 0 0% 0);   transform: translateY(-50%) translateX(0px);  color: var(--accent); }
+    }
+
+    /* ── CTA ── */
+    #cta {
+      position: absolute;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 60px);
+      left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column;
+      align-items: center; gap: 12px;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      pointer-events: none;
+      width: 90%;
+    }
+    #cta.show { opacity: 1; pointer-events: all; }
+
+    #cta-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 32px; border: 2px solid var(--sub); border-radius: 4px;
+      background: rgba(0,255,136,0.08); color: var(--sub);
+      font-family: var(--font); font-size: clamp(13px, 3.5vw, 16px);
+      letter-spacing: 0.14em; font-weight: bold;
+      text-decoration: none; cursor: pointer;
+      width: 100%; max-width: 320px; justify-content: center;
+      animation: ctaGlow 1.8s ease-in-out infinite;
+      -webkit-tap-highlight-color: transparent;
+    }
+    @keyframes ctaGlow {
+      0%,100% { box-shadow: 0 0 12px rgba(0,255,136,0.2); }
+      50%      { box-shadow: 0 0 30px rgba(0,255,136,0.5); }
+    }
+    #cta-btn:active { background: rgba(0,255,136,0.2); }
+
+    #countdown {
+      font-size: clamp(10px, 2.6vw, 12px);
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      opacity: 0.5;
+    }
+    #skip-btn {
+      font-size: clamp(9px, 2.2vw, 11px);
+      letter-spacing: 0.16em;
+      color: var(--accent);
+      opacity: 0.3;
+      cursor: pointer;
+      border: none; background: none;
+      font-family: var(--font);
+      -webkit-tap-highlight-color: transparent;
+      pointer-events: all;
+    }
+    #skip-btn:active { opacity: 0.7; }
+
+    /* ── Top corner badges ── */
+    #badge-tl, #badge-tr {
+      position: absolute;
+      top: calc(env(safe-area-inset-top, 0px) + 12px);
+      font-size: clamp(9px, 2.2vw, 11px);
+      letter-spacing: 0.18em;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    #badge-tl { left: 16px; color: var(--accent); }
+    #badge-tr { right: 16px; color: var(--accent); text-align: right; }
+
+    /* ── Progress bar (bottom) ── */
+    #progress-wrap {
+      position: absolute;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+      left: 8%; right: 8%;
+      height: 2px;
+      background: rgba(0,229,204,0.1);
+      border-radius: 2px;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    #progress-bar {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--sub));
+      border-radius: 2px;
+      transition: width 0.1s linear;
+      box-shadow: 0 0 8px rgba(0,229,204,0.5);
+    }
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="overlay">
+  <div id="badge-tl">XTREASURE//SYS</div>
+  <div id="badge-tr" id="badge-tr">SIGNAL: <span id="sig-strength">████</span></div>
+
+  <div id="txt-boot" class="scene-text"></div>
+  <div id="txt-classified" class="scene-text">◈ &nbsp; CLASSIFIED TRANSMISSION &nbsp; ◈</div>
+  <div id="txt-scanning"  class="scene-text">▶ &nbsp; SCANNING ENVIRONMENT...</div>
+  <div id="txt-locked"    class="scene-text">◉ &nbsp; TARGET LOCKED</div>
+  <div id="txt-logo"      class="scene-text">XTREASURE</div>
+  <div id="txt-tagline"   class="scene-text">THE WORLD IS YOUR GAME BOARD</div>
+
+  <div id="cta">
+    <a id="cta-btn" href="#">⬇ &nbsp; GET THE APP</a>
+    <p id="countdown">LAUNCHING IN 5</p>
+    <button id="skip-btn" onclick="skipToStore()">[ SKIP ]</button>
+  </div>
+
+  <div id="progress-wrap"><div id="progress-bar"></div></div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+//  CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+const ANDROID_PKG   = 'games.outer.xtreasure';
+const IOS_STORE_URL = 'https://apps.apple.com/app/xtreasure/idPLACEHOLDER';
+const PLAY_STORE    = 'https://play.google.com/store/apps/details?id=' + ANDROID_PKG;
+
+function parseRoute() {
+  const p = new URLSearchParams(window.location.search);
+  if (p.get('id')) return { boxId: p.get('id'), fullPath: window.location.pathname };
+  const parts = window.location.pathname.split('/').filter(Boolean);
+  return { boxId: parts.length >= 1 ? parts[parts.length-1] : 'demo', fullPath: window.location.pathname };
+}
+const { boxId, fullPath } = parseRoute();
+const SCHEME_URL  = 'artboxtoy:/' + fullPath;
+const ua          = navigator.userAgent || '';
+const isIOS       = /iPhone|iPad|iPod/i.test(ua);
+const isAndroid   = /Android/i.test(ua);
+const isMobile    = isIOS || isAndroid;
+
+function storeURL() {
+  if (isIOS) return IOS_STORE_URL;
+  if (isAndroid) {
+    const ref = encodeURIComponent('utm_source=qr&utm_campaign=box&url=' + encodeURIComponent('https://artboxtoy.com' + fullPath));
+    return PLAY_STORE + '&referrer=' + ref;
+  }
+  return IOS_STORE_URL; // desktop default
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  CANVAS SETUP
+// ─────────────────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+let W, H, cx, cy;
+
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  cx = W / 2; cy = H / 2;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  UTILITIES
+// ─────────────────────────────────────────────────────────────────────────────
+const C_ACCENT = '#00E5CC';
+const C_SUB    = '#00FF88';
+const C_WARN   = '#FFB800';
+const C_RED    = '#FF3355';
+const C_DIM    = 'rgba(0,229,204,0.15)';
+
+function rnd(a, b)    { return a + Math.random() * (b - a); }
+function rndInt(a, b) { return Math.floor(rnd(a, b)); }
+function lerp(a, b, t){ return a + (b - a) * t; }
+function clamp(v,a,b) { return Math.max(a, Math.min(b, v)); }
+function easeOut(t)   { return 1 - Math.pow(1 - t, 3); }
+function easeInOut(t) { return t < 0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
+
+function hexAlpha(hex, a) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function show(id)   { const e = document.getElementById(id); if(e) e.style.opacity = '1'; }
+function hide(id)   { const e = document.getElementById(id); if(e) e.style.opacity = '0'; }
+function setText(id, t) { const e = document.getElementById(id); if(e) e.textContent = t; }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  PARTICLES
+// ─────────────────────────────────────────────────────────────────────────────
+const particles = [];
+function spawnParticle(x, y, opts = {}) {
+  particles.push({
+    x, y,
+    vx: opts.vx ?? rnd(-1.5, 1.5),
+    vy: opts.vy ?? rnd(-2.5, 0.5),
+    life: 1,
+    decay: opts.decay ?? rnd(0.012, 0.028),
+    size: opts.size ?? rnd(1.5, 4),
+    color: opts.color ?? C_ACCENT,
+    trail: opts.trail ?? false,
+    px: x, py: y
+  });
+}
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.px = p.x; p.py = p.y;
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.04;
+    p.life -= p.decay;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life * 0.9;
+    ctx.fillStyle = p.color;
+    if (p.trail) {
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = p.size * 0.5;
+      ctx.beginPath();
+      ctx.moveTo(p.px, p.py);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI*2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SCENE 1: STATIC NOISE + BOOT (0 – 2.5s)
+// ─────────────────────────────────────────────────────────────────────────────
+const bootLines = [
+  'XTREASURE OS v2.6.1',
+  'INITIALIZING SENSORS...',
+  'GPS LOCK: ACQUIRED',
+  'AR MODULE: ONLINE',
+  'BLUETOOTH: READY',
+  'MISSION DATABASE: SYNCED',
+  'AGENTS ONLINE: 1,247',
+  '',
+  '> SCANNING FOR SIGNAL...',
+];
+let bootIdx = 0, bootTimer = 0;
+let bootText = '';
+
+function drawScene1(t) {
+  // CRT noise background
+  const noiseAlpha = Math.max(0, 1 - t * 0.8);
+  if (noiseAlpha > 0.05) {
+    const imageData = ctx.createImageData(W, H);
+    const d = imageData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const v = Math.random() < 0.08 ? rnd(20, 80) : 0;
+      d[i]   = 0;
+      d[i+1] = v;
+      d[i+2] = v * 0.7;
+      d[i+3] = v * 2.5 * noiseAlpha;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  // Typing effect
+  bootTimer += 1/60;
+  if (bootIdx < bootLines.length && bootTimer > 0.22) {
+    bootTimer = 0;
+    bootText += (bootText ? '\n' : '') + bootLines[bootIdx++];
+    setText('txt-boot', bootText);
+    show('txt-boot');
+  }
+
+  // Scan line overlay
+  ctx.fillStyle = 'rgba(0,255,136,0.015)';
+  for (let y = 0; y < H; y += 4) {
+    ctx.fillRect(0, y, W, 2);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SCENE 2: WORLD GRID (2.5 – 6s)
+// ─────────────────────────────────────────────────────────────────────────────
+const gridNodes = [];
+const gridEdges = [];
+function initGrid() {
+  gridNodes.length = 0; gridEdges.length = 0;
+  const cols = 8, rows = 6;
+  const gW = W * 0.88, gH = H * 0.55;
+  const ox = (W - gW) / 2, oy = (H - gH) / 2 + H * 0.04;
+  for (let r = 0; r <= rows; r++) {
+    for (let c = 0; c <= cols; c++) {
+      gridNodes.push({
+        x: ox + c * gW / cols,
+        y: oy + r * gH / rows,
+        born: rnd(0, 1),
+        pulse: rnd(0, Math.PI * 2),
+        isHot: Math.random() < 0.15
+      });
+    }
+  }
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * (cols+1) + c;
+      gridEdges.push([i, i+1]);
+      gridEdges.push([i, i+cols+1]);
+    }
+  }
+}
+initGrid();
+
+const locationPings = [];
+function spawnPing() {
+  const hot = gridNodes.filter(n => n.isHot);
+  if (!hot.length) return;
+  const n = hot[rndInt(0, hot.length)];
+  locationPings.push({ x: n.x, y: n.y, r: 0, maxR: W * 0.055, life: 1, color: Math.random() < 0.3 ? C_WARN : C_SUB });
+}
+
+function drawScene2(t) {
+  const progress = clamp(t / 3.5, 0, 1);
+
+  // Grid edges
+  gridEdges.forEach(([a, b]) => {
+    const na = gridNodes[a], nb = gridNodes[b];
+    const born = Math.max(na.born, nb.born);
+    if (progress < born) return;
+    const alpha = clamp((progress - born) / 0.3, 0, 1) * 0.18;
+    ctx.strokeStyle = `rgba(0,229,204,${alpha})`;
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(na.x, na.y);
+    ctx.lineTo(nb.x, nb.y);
+    ctx.stroke();
+  });
+
+  // Grid nodes
+  const now = performance.now() / 1000;
+  gridNodes.forEach(n => {
+    if (progress < n.born) return;
+    const a = clamp((progress - n.born) / 0.25, 0, 1);
+    const pulse = 0.5 + 0.5 * Math.sin(now * 2 + n.pulse);
+    const r = n.isHot ? 3.5 + pulse * 2 : 2;
+    ctx.globalAlpha = a * (n.isHot ? 0.9 : 0.3);
+    ctx.fillStyle   = n.isHot ? C_SUB : C_ACCENT;
+    if (n.isHot) {
+      ctx.shadowColor = C_SUB;
+      ctx.shadowBlur  = 8 + pulse * 6;
+    }
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  });
+
+  // Pings
+  if (progress > 0.4 && Math.random() < 0.025) spawnPing();
+  for (let i = locationPings.length-1; i >= 0; i--) {
+    const p = locationPings[i];
+    p.r   += 0.9;
+    p.life = 1 - p.r / p.maxR;
+    if (p.life <= 0) { locationPings.splice(i, 1); continue; }
+    ctx.globalAlpha = p.life * 0.7;
+    ctx.strokeStyle = p.color;
+    ctx.lineWidth   = 1.5;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // "Agents online" counter
+  if (progress > 0.3) {
+    const count = Math.floor(lerp(0, 1247, easeOut(clamp((progress-0.3)/0.7,0,1))));
+    ctx.globalAlpha = clamp((progress-0.3)/0.2, 0, 1) * 0.6;
+    ctx.fillStyle   = C_ACCENT;
+    ctx.font        = `bold ${clamp(W*0.03,11,16)}px 'Courier New'`;
+    ctx.textAlign   = 'center';
+    ctx.fillText(`FIELD AGENTS ONLINE: ${count.toLocaleString()}`, cx, H * 0.90);
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SCENE 3: AR TARGETING + BOX (6 – 11s)
+// ─────────────────────────────────────────────────────────────────────────────
+let boxParticles = [];
+function spawnBoxBurst(bx, by) {
+  for (let i = 0; i < 60; i++) {
+    const angle = rnd(0, Math.PI * 2);
+    const speed = rnd(1.5, 5);
+    spawnParticle(bx, by, {
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 2,
+      size: rnd(2, 5),
+      color: Math.random() < 0.5 ? C_ACCENT : C_SUB,
+      decay: rnd(0.01, 0.022),
+      trail: true
+    });
+  }
+}
+
+function drawReticle(bx, by, size, progress, locked) {
+  const arm  = size * 0.3;
+  const now  = performance.now() / 1000;
+  const pulse = 0.7 + 0.3 * Math.sin(now * 4);
+  const alpha = clamp(progress * 2, 0, 1) * (locked ? pulse : 0.7);
+  const color = locked ? C_SUB : C_ACCENT;
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth   = 2.5;
+  ctx.globalAlpha = alpha;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = locked ? 12 : 6;
+
+  // Corners — rotate slightly when scanning
+  const rot = locked ? 0 : Math.sin(now * 1.5) * 0.06;
+  ctx.save();
+  ctx.translate(bx, by);
+  ctx.rotate(rot);
+
+  const hs = size / 2;
+  ctx.beginPath();
+  ctx.moveTo(-hs, -hs + arm); ctx.lineTo(-hs, -hs); ctx.lineTo(-hs + arm, -hs);
+  ctx.moveTo( hs - arm, -hs); ctx.lineTo( hs, -hs); ctx.lineTo( hs, -hs + arm);
+  ctx.moveTo( hs, hs - arm);  ctx.lineTo( hs,  hs); ctx.lineTo( hs - arm,  hs);
+  ctx.moveTo(-hs + arm,  hs); ctx.lineTo(-hs,  hs); ctx.lineTo(-hs,  hs - arm);
+  ctx.stroke();
+
+  // Center crosshair
+  if (!locked) {
+    ctx.globalAlpha = alpha * 0.35;
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(-hs*0.3, 0); ctx.lineTo(hs*0.3, 0);
+    ctx.moveTo(0, -hs*0.3); ctx.lineTo(0,  hs*0.3);
+    ctx.stroke();
+  } else {
+    // Locked: circle
+    ctx.globalAlpha = alpha * 0.4;
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.12, 0, Math.PI*2);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+  ctx.shadowBlur  = 0;
+  ctx.globalAlpha = 1;
+}
+
+function drawTreasureBox(bx, by, size, progress) {
+  if (progress <= 0) return;
+  const p  = easeOut(progress);
+  const hs = size / 2 * p;
+  const now = performance.now() / 1000;
+  const glow = 0.6 + 0.4 * Math.sin(now * 3);
+
+  ctx.globalAlpha = clamp(progress * 1.5, 0, 0.95);
+  ctx.strokeStyle = C_ACCENT;
+  ctx.shadowColor = C_ACCENT;
+  ctx.shadowBlur  = 15 + glow * 10;
+  ctx.lineWidth   = 2;
+
+  // Main box outline
+  ctx.beginPath();
+  ctx.rect(bx - hs, by - hs * 0.7, hs * 2, hs * 1.4);
+  ctx.stroke();
+
+  // Lid
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha *= 0.7;
+  ctx.beginPath();
+  ctx.rect(bx - hs * 0.9, by - hs * 1.1, hs * 1.8, hs * 0.5);
+  ctx.stroke();
+
+  // Lock icon
+  ctx.globalAlpha = clamp(progress * 2, 0, 1) * 0.9;
+  ctx.lineWidth = 1.5;
+  const lx = bx, ly = by - hs * 0.05;
+  ctx.beginPath();
+  ctx.arc(lx, ly - hs * 0.12, hs * 0.14, Math.PI, 0);
+  ctx.stroke();
+  ctx.strokeRect(lx - hs*0.12, ly - hs*0.1, hs*0.24, hs*0.2);
+
+  // Glow fill
+  ctx.shadowBlur  = 0;
+  ctx.globalAlpha = 0.06 * glow;
+  ctx.fillStyle   = C_ACCENT;
+  ctx.fillRect(bx - hs, by - hs * 0.7, hs * 2, hs * 1.4);
+
+  ctx.globalAlpha = 1;
+
+  // Floating particles around box
+  if (Math.random() < 0.2 * progress) {
+    spawnParticle(
+      bx + rnd(-hs, hs),
+      by + rnd(-hs * 0.5, hs * 0.5),
+      { vx: rnd(-0.4, 0.4), vy: rnd(-1.2, -0.3), size: rnd(1, 2.5), color: C_ACCENT, decay: 0.02 }
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SCENE 4: LOGO REVEAL (11 – 14s)
+// ─────────────────────────────────────────────────────────────────────────────
+function drawTriangleLogo(bx, by, size, progress) {
+  if (progress <= 0) return;
+  const p   = easeOut(clamp(progress * 1.4, 0, 1));
+  const now = performance.now() / 1000;
+  const glow = 0.6 + 0.4 * Math.sin(now * 2.5);
+
+  ctx.save();
+  ctx.translate(bx, by);
+
+  // Outer triangle
+  const h = size * 0.9;
+  const pts = [
+    [0,     -h * 0.65],
+    [ h * 0.55, h * 0.35],
+    [-h * 0.55, h * 0.35]
+  ];
+
+  ctx.strokeStyle = C_ACCENT;
+  ctx.shadowColor = C_ACCENT;
+  ctx.shadowBlur  = 20 + glow * 12;
+  ctx.lineWidth   = 2.5;
+  ctx.globalAlpha = p;
+
+  // Draw triangle progressively
+  const totalLen = 3;
+  const drawn    = p * totalLen;
+  ctx.beginPath();
+  ctx.moveTo(...pts[0]);
+  for (let i = 1; i <= 3; i++) {
+    if (drawn >= i - 1) {
+      const t2 = clamp(drawn - (i-1), 0, 1);
+      const from = pts[(i-1) % 3];
+      const to   = pts[i % 3];
+      ctx.lineTo(lerp(from[0], to[0], t2), lerp(from[1], to[1], t2));
+    }
+  }
+  ctx.stroke();
+
+  // Inner dot
+  ctx.globalAlpha = clamp((progress - 0.6) * 3, 0, 1);
+  ctx.fillStyle   = C_SUB;
+  ctx.shadowColor = C_SUB;
+  ctx.shadowBlur  = 15 + glow * 8;
+  ctx.beginPath();
+  ctx.arc(0, h * 0.08, size * 0.09 * easeOut(clamp((progress-0.6)*3,0,1)), 0, Math.PI*2);
+  ctx.fill();
+
+  // Connector lines from vertices to center
+  if (progress > 0.7) {
+    const la = clamp((progress - 0.7) * 4, 0, 1) * 0.3;
+    ctx.strokeStyle = C_ACCENT;
+    ctx.shadowBlur  = 4;
+    ctx.lineWidth   = 1;
+    ctx.globalAlpha = la;
+    pts.forEach(pt => {
+      ctx.beginPath();
+      ctx.moveTo(pt[0], pt[1]);
+      ctx.lineTo(0, h * 0.08);
+      ctx.stroke();
+    });
+  }
+
+  ctx.shadowBlur  = 0;
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  PERSISTENT BACKGROUND ELEMENTS
+// ─────────────────────────────────────────────────────────────────────────────
+function drawBackground(scene) {
+  ctx.clearRect(0, 0, W, H);
+
+  // Base dark fill
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle vignette
+  const vg = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.7);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,0.7)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Faint horizontal scan lines (always)
+  ctx.fillStyle = 'rgba(0,229,204,0.012)';
+  for (let y = 0; y < H; y += 3) ctx.fillRect(0, y, W, 1);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  MASTER TIMELINE
+// ─────────────────────────────────────────────────────────────────────────────
+const SCENE_BOOT   = { start: 0,    end: 2.5  };
+const SCENE_GRID   = { start: 2.0,  end: 6.0  };
+const SCENE_AR     = { start: 5.5,  end: 11.0 };
+const SCENE_LOGO   = { start: 10.5, end: 14.5 };
+const SCENE_CTA    = { start: 14.0, end: 99   };
+const TOTAL_TEASER = 14.5;
+
+let startTime  = null;
+let elapsed    = 0;
+let ctaShown   = false;
+let countdownN = 5;
+let countdownTimer = 0;
+let redirected = false;
+
+// State flags for overlay text
+let classifiedShown = false;
+let scanningShown   = false;
+let lockedShown     = false;
+let logoShown       = false;
+let taglineShown    = false;
+let badgesShown     = false;
+let boxBurst        = false;
+
+function frame(ts) {
+  if (!startTime) startTime = ts;
+  elapsed = (ts - startTime) / 1000;
+
+  const T = elapsed;
+  drawBackground(T);
+
+  // ── SCENE 1: Boot ──
+  if (T < SCENE_BOOT.end + 0.5) {
+    drawScene1(clamp(T / SCENE_BOOT.end, 0, 1));
+  } else {
+    hide('txt-boot');
+  }
+
+  // ── SCENE 2: Grid ──
+  if (T >= SCENE_GRID.start && T < SCENE_GRID.end + 0.5) {
+    const t2 = clamp((T - SCENE_GRID.start) / (SCENE_GRID.end - SCENE_GRID.start), 0, 1);
+    const fadeOut = T > SCENE_GRID.end - 0.8 ? 1 - clamp((T - (SCENE_GRID.end-0.8)) / 0.8, 0, 1) : 1;
+    ctx.globalAlpha = fadeOut;
+    drawScene2(t2 * 3.5);
+    ctx.globalAlpha = 1;
+
+    if (!classifiedShown && T > SCENE_GRID.start + 0.3) {
+      classifiedShown = true;
+      show('txt-classified');
+      show('badge-tl'); show('badge-tr');
+    }
+  }
+
+  // ── SCENE 3: AR ──
+  if (T >= SCENE_AR.start && T < SCENE_AR.end + 0.5) {
+    const t3 = clamp((T - SCENE_AR.start) / (SCENE_AR.end - SCENE_AR.start), 0, 1);
+
+    if (!scanningShown) {
+      scanningShown = true;
+      hide('txt-classified');
+      show('txt-scanning');
+    }
+
+    // Reticle
+    const reticleSize = Math.min(W, H) * 0.45;
+    const locked = t3 > 0.42;
+    drawReticle(cx, cy * 0.9, reticleSize, t3, locked);
+
+    // Lock text
+    if (locked && !lockedShown) {
+      lockedShown = true;
+      hide('txt-scanning');
+      show('txt-locked');
+      if (!boxBurst) { boxBurst = true; spawnBoxBurst(cx, cy * 0.9); }
+    }
+
+    // Box materializes after lock
+    const boxProgress = clamp((t3 - 0.45) / 0.55, 0, 1);
+    drawTreasureBox(cx, cy * 0.88, reticleSize * 0.45, boxProgress);
+
+    // Scan line sweep
+    if (t3 < 0.42) {
+      const sy = cy * 0.9 - reticleSize/2 + (reticleSize * ((T * 0.9) % 1));
+      const sg = ctx.createLinearGradient(0, sy-8, 0, sy+8);
+      sg.addColorStop(0, 'rgba(0,229,204,0)');
+      sg.addColorStop(0.5, 'rgba(0,229,204,0.25)');
+      sg.addColorStop(1, 'rgba(0,229,204,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(cx - reticleSize/2, sy-8, reticleSize, 16);
+    }
+  }
+
+  // ── PARTICLES (always) ──
+  updateParticles();
+  drawParticles();
+
+  // ── SCENE 4: Logo ──
+  if (T >= SCENE_LOGO.start) {
+    const t4 = clamp((T - SCENE_LOGO.start) / (SCENE_LOGO.end - SCENE_LOGO.start), 0, 1);
+
+    // Fade out AR elements
+    const fadeAR = 1 - clamp((T - SCENE_LOGO.start) / 0.8, 0, 1);
+    if (fadeAR < 0.01) {
+      hide('txt-locked'); hide('txt-scanning');
+    }
+
+    drawTriangleLogo(cx, cy * 0.72, Math.min(W,H) * 0.28, t4);
+
+    if (!logoShown && t4 > 0.55) {
+      logoShown = true;
+      show('txt-logo');
+      // brief glitch
+      const el = document.getElementById('txt-logo');
+      if (el) {
+        el.classList.add('glitch');
+        setTimeout(() => el.classList.remove('glitch'), 400);
+      }
+    }
+    if (!taglineShown && t4 > 0.85) {
+      taglineShown = true;
+      show('txt-tagline');
+    }
+  }
+
+  // ── SCENE 5: CTA ──
+  if (T >= SCENE_CTA.start && !ctaShown) {
+    ctaShown = true;
+    const cta = document.getElementById('cta');
+    const btn = document.getElementById('cta-btn');
+    if (cta) cta.classList.add('show');
+    if (btn) btn.href = storeURL();
+    if (btn && !isMobile) btn.textContent = isAndroid ? '⬇  GOOGLE PLAY' : '⬇  APP STORE (iOS)';
+    document.getElementById('progress-wrap').style.opacity = '1';
+  }
+
+  // Progress bar
+  if (T >= SCENE_LOGO.start) {
+    const pct = clamp((T - SCENE_LOGO.start) / (SCENE_CTA.start - SCENE_LOGO.start + 5), 0, 1) * 100;
+    const bar = document.getElementById('progress-bar');
+    if (bar) bar.style.width = pct + '%';
+  }
+
+  // Countdown + auto-redirect
+  if (ctaShown && !redirected) {
+    countdownTimer += 1/60;
+    if (countdownTimer >= 1) {
+      countdownTimer = 0;
+      countdownN--;
+      const cd = document.getElementById('countdown');
+      if (cd) cd.textContent = countdownN > 0 ? `LAUNCHING IN ${countdownN}` : 'LAUNCHING...';
+    }
+    if (countdownN <= 0 && !redirected) {
+      redirected = true;
+      if (isMobile) {
+        window.location.href = SCHEME_URL;
+        setTimeout(() => { window.location.href = storeURL(); }, 2200);
+      } else {
+        window.location.href = storeURL();
+      }
+    }
+  }
+
+  requestAnimationFrame(frame);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SKIP
+// ─────────────────────────────────────────────────────────────────────────────
+function skipToStore() {
+  redirected = true;
+  if (isMobile) {
+    window.location.href = SCHEME_URL;
+    setTimeout(() => { window.location.href = storeURL(); }, 2200);
+  } else {
+    window.location.href = storeURL();
+  }
+}
+window.skipToStore = skipToStore;
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  START
+// ─────────────────────────────────────────────────────────────────────────────
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
